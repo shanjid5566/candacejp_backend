@@ -2,7 +2,8 @@ import express from "express";
 import morgan from "morgan";
 import logger from "./utils/logger.js";
 import authRoutes from "./routes/auth.routes.js";
-
+import adminRoutes from "./routes/admin.routes.js";
+import { sendError, sendSuccess } from "./utils/apiResponse.js";
 class App {
   constructor() {
     this.app = express();
@@ -25,22 +26,19 @@ class App {
 
   initializeRoutes() {
     this.app.get("/", (req, res) => {
-      res.status(200).json({
-        status: "OK",
-        message: "Server is running",
+      sendSuccess(res, "Server is running", {
         timestamp: new Date().toISOString(),
       });
     });
 
     // Health check route
     this.app.get("/health", (req, res) => {
-      res.status(200).json({
-        status: "OK",
-        message: "Server is running",
+      sendSuccess(res, "Server is running", {
         timestamp: new Date().toISOString(),
       });
     });
     this.app.use('/api/auth', authRoutes);
+    this.app.use('/api/admin', adminRoutes);
 
     // Example of where your modular routes will be injected:
     // import userRoutes from './routes/user.routes.js';
@@ -53,10 +51,7 @@ class App {
       // Log the 404 warning
       logger.error(`404 Not Found - ${req.originalUrl}`);
       
-      res.status(404).json({
-        error: "Not Found",
-        message: "The requested resource does not exist",
-      });
+      sendError(res, "The requested resource does not exist", 404);
     });
 
     // Global error handler
@@ -64,10 +59,7 @@ class App {
       // Log the actual system error and stack trace to your Winston file
       logger.error(`Server Error: ${err.message} \nStack: ${err.stack}`);
 
-      res.status(err.status || 500).json({
-        error: err.message || "Internal Server Error",
-        ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
-      });
+      sendError(res, err.message || "Internal Server Error", err.status || 500);
     });
   }
 }
