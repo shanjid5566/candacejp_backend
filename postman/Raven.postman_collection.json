@@ -758,22 +758,43 @@
 										{ "key": "limit", "value": "10" }
 									]
 								},
-								"description": "Confirmed reservations, travel preferences, and custom travel requests. Use source to pick details endpoint: RESERVATION | TRAVEL_PREFERENCE | CUSTOM_TRAVEL."
+								"description": "Returns trips[] with a source field. Use the matching details request below based on source."
 							}
 						},
 						{
-							"name": "Get Trip Details (Reservation)",
+							"name": "Get Trip Details (RESERVATION)",
 							"request": {
 								"method": "GET",
 								"url": {
-									"raw": "{{baseUrl}}/api/member/reservations/:id",
+									"raw": "{{baseUrl}}/api/member/reservations/{{reservationId}}",
 									"host": ["{{baseUrl}}"],
-									"path": ["api", "member", "reservations", ":id"],
-									"variable": [
-										{ "key": "id", "value": "" }
-									]
+									"path": ["api", "member", "reservations", "{{reservationId}}"]
 								},
-								"description": "Use when upcoming trip source is RESERVATION."
+								"description": "When upcoming trip source is RESERVATION. GET /api/member/reservations/:id"
+							}
+						},
+						{
+							"name": "Get Trip Details (TRAVEL_PREFERENCE)",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/member/travel-preferences/{{preferenceId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "member", "travel-preferences", "{{preferenceId}}"]
+								},
+								"description": "When upcoming trip source is TRAVEL_PREFERENCE. GET /api/member/travel-preferences/:id"
+							}
+						},
+						{
+							"name": "Get Trip Details (CUSTOM_TRAVEL)",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/member/custom-travels/{{interestId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "member", "custom-travels", "{{interestId}}"]
+								},
+								"description": "When upcoming trip source is CUSTOM_TRAVEL. GET /api/member/custom-travels/:id"
 							}
 						}
 					]
@@ -1016,6 +1037,21 @@
 		},
 		{
 			"key": "opportunityId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "reservationId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "preferenceId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "interestId",
 			"value": "",
 			"type": "string"
 		}
