@@ -128,7 +128,7 @@ class StaffService {
         return 'NYC_TAMPA'; // Default
     }
     async createOpportunity(data, createdById) {
-        return await prisma.opportunity.create({
+        const opportunity = await prisma.opportunity.create({
           data: {
             direction: this.determineDirection(data.origin, data.destination),
             origin: data.origin,
@@ -143,6 +143,12 @@ class StaffService {
             createdById,
           },
         });
+
+        if (opportunity.status === 'OPEN_FOR_RESERVATION') {
+          await notificationService.notifyAllMembersOpportunityOpen(opportunity);
+        }
+
+        return opportunity;
       }
 
     async getAllOpportunities(page = 1, limit = 10, filters = {}) {
@@ -156,7 +162,7 @@ class StaffService {
                 where,
                 skip,
                 take: perPage,
-                orderBy: { departureDate: 'asc' },
+                orderBy: { createdAt: 'desc' },
             }),
             prisma.opportunity.count({ where }),
         ]);
@@ -210,10 +216,14 @@ class StaffService {
         const opp = await prisma.opportunity.findUnique({ where: { id } });
         if (opp?.status !== 'DRAFT') throw new Error('Only DRAFT opportunities can be published');
 
-        return await prisma.opportunity.update({
+        const opportunity = await prisma.opportunity.update({
             where: { id },
             data: { status: 'OPEN_FOR_RESERVATION' }
         });
+
+        await notificationService.notifyAllMembersOpportunityOpen(opportunity);
+
+        return opportunity;
     }
 
     async updateReservationStatus(id, newStatus) {
@@ -247,11 +257,17 @@ class StaffService {
         if (newStatus === 'CONFIRMED') {
             const pendingReservations = await prisma.reservation.findMany({
                 where: { opportunityId: id, status: 'PENDING' },
-                select: { id: true },
+                select: { id: true, memberId: true },
             });
 
             await Promise.all(
                 pendingReservations.map((reservation) => this.confirmReservation(reservation.id))
+            );
+
+            const reservedMemberIds = pendingReservations.map((reservation) => reservation.memberId);
+            await notificationService.notifyAllMembersOpportunityConfirmed(
+                updatedOpportunity,
+                reservedMemberIds
             );
         }
 

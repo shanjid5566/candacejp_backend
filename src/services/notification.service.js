@@ -13,6 +13,7 @@ const UI_TYPE_MAP = {
   MEMBER_INTEREST_CONFIRMED: 'confirmed',
   RESERVATION_CONFIRMED: 'confirmed',
   OPPORTUNITY_NEW: 'new',
+  OPPORTUNITY_CONFIRMED: 'confirmed',
   RESERVATION_PENDING: 'pending',
   TRIP_CONFIRMED: 'confirmed',
 };
@@ -55,6 +56,7 @@ export function formatNotification(notification) {
     date: payload.date ?? null,
     referenceId: payload.referenceId ?? null,
     referenceType: payload.referenceType ?? null,
+    opportunityId: payload.opportunityId ?? null,
     isRead: notification.isRead,
     createdAt: notification.createdAt,
   };
@@ -129,6 +131,81 @@ class NotificationService {
       date,
       referenceId: reservation.id,
       referenceType: 'RESERVATION',
+      opportunityId: opportunity.id,
+    });
+  }
+
+  buildOpportunityOpenPayload(opportunity) {
+    const route = formatRoute(opportunity.origin, opportunity.destination);
+    const date = formatDisplayDate(opportunity.departureDate);
+
+    return {
+      title: 'New Travel Opportunity',
+      description: `A new travel opportunity for ${route} is now open for reservation.`,
+      route,
+      date,
+      referenceId: opportunity.id,
+      referenceType: 'OPPORTUNITY',
+    };
+  }
+
+  async notifyAllMembersOpportunityOpen(opportunity) {
+    const members = await prisma.user.findMany({
+      where: { role: 'MEMBER', status: 'ACTIVE' },
+      select: { id: true },
+    });
+
+    if (!members.length) {
+      return;
+    }
+
+    const payload = this.buildOpportunityOpenPayload(opportunity);
+
+    await prisma.notification.createMany({
+      data: members.map((member) => ({
+        memberId: member.id,
+        type: 'OPPORTUNITY_NEW',
+        content: JSON.stringify(payload),
+      })),
+    });
+  }
+
+  buildOpportunityConfirmedPayload(opportunity) {
+    const route = formatRoute(opportunity.origin, opportunity.destination);
+    const date = formatDisplayDate(opportunity.departureDate);
+
+    return {
+      title: 'Travel Opportunity Confirmed',
+      description: `The travel opportunity for ${route} has been confirmed.`,
+      route,
+      date,
+      referenceId: opportunity.id,
+      referenceType: 'OPPORTUNITY',
+    };
+  }
+
+  async notifyAllMembersOpportunityConfirmed(opportunity, excludeMemberIds = []) {
+    const excludeSet = new Set(excludeMemberIds);
+
+    const members = await prisma.user.findMany({
+      where: { role: 'MEMBER', status: 'ACTIVE' },
+      select: { id: true },
+    });
+
+    const recipients = members.filter((member) => !excludeSet.has(member.id));
+
+    if (!recipients.length) {
+      return;
+    }
+
+    const payload = this.buildOpportunityConfirmedPayload(opportunity);
+
+    await prisma.notification.createMany({
+      data: recipients.map((member) => ({
+        memberId: member.id,
+        type: 'OPPORTUNITY_CONFIRMED',
+        content: JSON.stringify(payload),
+      })),
     });
   }
 
