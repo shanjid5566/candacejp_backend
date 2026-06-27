@@ -1,7 +1,7 @@
 {
 	"info": {
 		"name": "Raven Platform APIs",
-		"description": "Collection for testing the Raven backend authentication flow with automated token handling.",
+		"description": "Collection for testing the Raven backend authentication flow with automated token handling.\n\n## Socket.io (Live Messaging)\nConnect: `io(baseUrl, { auth: { token: accessToken } })`\n\n**Client → Server:** `conversation:join`, `message:send`, `message:delivered`, `message:seen`, `typing:start`, `typing:stop`, `presence:check`\n\n**Server → Client:** `message:new`, `message:sent`, `message:status`, `message:seen`, `typing:update`, `presence:update`, `presence:online-users`\n\n**Tick types:** `single` (sent), `double_blue` (delivered), `double_green` (seen)",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"auth": {
@@ -49,6 +49,9 @@
 				{
 					"name": "2. Verify Stripe Payment",
 					"request": {
+						"auth": {
+							"type": "noauth"
+						},
 						"method": "POST",
 						"header": [
 							{
@@ -70,7 +73,8 @@
 								"auth",
 								"verify-payment"
 							]
-						}
+						},
+						"description": "Public. Call after Stripe checkout success (from Register or Resume Payment). Pass session_id from the payment-success redirect. Activates the account (PENDING_PAYMENT → ACTIVE)."
 					}
 				},
 				{
@@ -118,7 +122,38 @@
 					}
 				},
 				{
-					"name": "4. Refresh Token",
+					"name": "4. Resume Payment",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"member@raven.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/resume-payment",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"resume-payment"
+							]
+						},
+						"description": "For users who registered but did not complete Stripe payment (PENDING_PAYMENT). Verifies email/password and returns checkoutUrl to redirect to Stripe, same as registration. After payment, call Verify Stripe Payment."
+					}
+				},
+				{
+					"name": "5. Refresh Token",
 					"event": [
 						{
 							"listen": "test",
@@ -817,6 +852,60 @@
 					]
 				},
 				{
+					"name": "Messages",
+					"description": "REST helpers for chat history. Live send/receive uses Socket.io (see collection description).",
+					"item": [
+						{
+							"name": "Get Conversations",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/messages/conversations?search=",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "messages", "conversations"],
+									"query": [
+										{ "key": "search", "value": "", "description": "Optional. Members: filters existing chats by partner name/email. Concierge: searches all active members." }
+									]
+								},
+								"description": "List conversations with last message, unread count, and partner online status. Use `search` to filter: members only see existing chats; concierge can find any active member by name or email."
+							}
+						},
+						{
+							"name": "Get Messages With User",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/messages/with/{{chatPartnerId}}?page=1&limit=50",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "messages", "with", "{{chatPartnerId}}"],
+									"query": [
+										{ "key": "page", "value": "1" },
+										{ "key": "limit", "value": "50" }
+									]
+								},
+								"description": "Chat history with a member or concierge. tickType: single | double_blue | double_green."
+							}
+						},
+						{
+							"name": "Mark Conversation Seen",
+							"request": {
+								"method": "PATCH",
+								"header": [{ "key": "Content-Type", "value": "application/json" }],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"partnerId\": \"{{chatPartnerId}}\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/messages/seen",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "messages", "seen"]
+								},
+								"description": "Marks all messages from partner as SEEN (double green tick for sender)."
+							}
+						}
+					]
+				},
+				{
 					"name": "Profile",
 					"item": [
 						{
@@ -1179,6 +1268,58 @@
 					]
 				},
 				{
+					"name": "Messages",
+					"description": "REST helpers for chat history. Live send/receive uses Socket.io.",
+					"item": [
+						{
+							"name": "Get Conversations",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/messages/conversations?search=",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "messages", "conversations"],
+									"query": [
+										{ "key": "search", "value": "", "description": "Optional. Members: filters existing chats. Concierge: searches all active members by name/email." }
+									]
+								},
+								"description": "List conversations. Concierge `search` returns all matching members, including those without prior messages."
+							}
+						},
+						{
+							"name": "Get Messages With User",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/messages/with/{{chatPartnerId}}?page=1&limit=50",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "messages", "with", "{{chatPartnerId}}"],
+									"query": [
+										{ "key": "page", "value": "1" },
+										{ "key": "limit", "value": "50" }
+									]
+								}
+							}
+						},
+						{
+							"name": "Mark Conversation Seen",
+							"request": {
+								"method": "PATCH",
+								"header": [{ "key": "Content-Type", "value": "application/json" }],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"partnerId\": \"{{chatPartnerId}}\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/messages/seen",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "messages", "seen"]
+								}
+							}
+						}
+					]
+				},
+				{
 					"name": "Profile",
 					"item": [
 						{
@@ -1270,6 +1411,11 @@
 		},
 		{
 			"key": "supportRequestId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "chatPartnerId",
 			"value": "",
 			"type": "string"
 		}
