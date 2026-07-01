@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
 import prisma from '../lib/prisma.js';
 import { getInactiveAccountErrorCode } from '../utils/accountStatus.js';
+import { withTokenExpiryMeta } from '../utils/jwt.js';
 
 function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -12,20 +13,26 @@ function getStripe() {
   return new Stripe(key);
 }
 
+function sanitizeUser(user) {
+  if (!user) return user
+  const { password, stripeCustomerId, ...safeUser } = user
+  return safeUser
+}
+
 class AuthService {
   // Helper method to generate both access and refresh tokens
   generateTokens(user) {
     const payload = { id: user.id, role: user.role, status: user.status };
 
     const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
-      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m'
+      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
     });
 
     const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET, {
-      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
+      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
     });
 
-    return { accessToken, refreshToken };
+    return withTokenExpiryMeta(accessToken, refreshToken);
   }
 
   async createRegistrationCheckoutSession(user, { cancelUrl } = {}) {
@@ -150,10 +157,10 @@ class AuthService {
         },
       });
 
-      return { success: true, user: updatedUser };
+      return { success: true, user: sanitizeUser(updatedUser) };
     }
 
-    throw new Error("Payment not completed");
+    throw new Error('Payment not completed');
   }
 
   async login(email, password) {
@@ -177,13 +184,10 @@ class AuthService {
     }
 
     const tokens = this.generateTokens(user);
-    
-    // SECURELY remove the password AND stripeCustomerId from the user object
-    const { password: _, stripeCustomerId, ...safeUser } = user;
-    
+
     return {
       ...tokens,
-      user: safeUser
+      user: sanitizeUser(user),
     };
   }
 
