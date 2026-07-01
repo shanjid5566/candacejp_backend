@@ -253,7 +253,7 @@
 				}
 			]
 		},
-		{	
+		{
 			"name": "Admin",
 			"item": [
 				{
@@ -472,6 +472,18 @@
 									]
 								},
 								"description": "Admin only. List support requests with status SOLVED."
+							}
+						},
+						{
+							"name": "Get Support Request by ID",
+							"request": {
+								"method": "GET",
+								"url": {
+									"raw": "{{baseUrl}}/api/admin/support/{{supportRequestId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "admin", "support", "{{supportRequestId}}"]
+								},
+								"description": "Admin only. Retrieve a single support request by ID."
 							}
 						},
 						{
@@ -902,6 +914,35 @@
 								},
 								"description": "Marks all messages from partner as SEEN (double green tick for sender)."
 							}
+						},
+						{
+							"name": "Update Message",
+							"request": {
+								"method": "PATCH",
+								"header": [{ "key": "Content-Type", "value": "application/json" }],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"content\": \"Updated message text\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/messages/{{messageId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "messages", "{{messageId}}"]
+								},
+								"description": "Edit your own message. Only the sender can update. Broadcasts `message:updated` over Socket.io."
+							}
+						},
+						{
+							"name": "Delete Message",
+							"request": {
+								"method": "DELETE",
+								"url": {
+									"raw": "{{baseUrl}}/api/messages/{{messageId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "messages", "{{messageId}}"]
+								},
+								"description": "Soft-delete your own message. Only the sender can delete. Broadcasts `message:deleted` over Socket.io."
+							}
 						}
 					]
 				},
@@ -1315,6 +1356,35 @@
 									"host": ["{{baseUrl}}"],
 									"path": ["api", "messages", "seen"]
 								}
+							}
+						},
+						{
+							"name": "Update Message",
+							"request": {
+								"method": "PATCH",
+								"header": [{ "key": "Content-Type", "value": "application/json" }],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"content\": \"Updated message text\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/messages/{{messageId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "messages", "{{messageId}}"]
+								},
+								"description": "Edit your own message. Only the sender can update. Broadcasts `message:updated` over Socket.io."
+							}
+						},
+						{
+							"name": "Delete Message",
+							"request": {
+								"method": "DELETE",
+								"url": {
+									"raw": "{{baseUrl}}/api/messages/{{messageId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "messages", "{{messageId}}"]
+								},
+								"description": "Soft-delete your own message. Only the sender can delete. Broadcasts `message:deleted` over Socket.io."
 							}
 						}
 					]
